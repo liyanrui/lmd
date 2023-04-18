@@ -1,0 +1,222 @@
+#!/usr/bin/env bash
+# 确定脚本所在路径
+LMD_SELF_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# 获得文集子目录到文集根目录的相对路径
+function lmd_path_to_start {
+    local relative_path="$1"
+    if [ "$(pwd)" = "/" ]
+    then
+       echo "Error: I can not find right path!"
+       exit -1
+    elif [ -e lmd.conf ]
+    then
+        echo "${relative_path%/}"
+    else
+        relative_path="../$relative_path"
+        cd ../
+        lmd_path_to_start "$relative_path"
+    fi
+}
+function lmd_env {
+    CURRENT_PATH="$(pwd)"
+    PATH_TO_ROOT=$(lmd_path_to_start)
+    CATEGORY=$(realpath "$CURRENT_PATH" --relative-to="$PATH_TO_ROOT/source")
+    if [ -z "$PATH_TO_ROOT" ]
+    then
+        source ./lmd.conf
+    else
+        source $PATH_TO_ROOT/lmd.conf
+    fi
+}
+# $1 为文集名，$2 为文集根目录
+function lmd_init {
+    if [ -z "$1" ] || [ -z "$2" ]
+    then
+        echo "The right way: lmd init \"Work name\" work-directory"
+        exit -1
+    fi
+    if [ -d "$2" ]
+    then
+        echo "lmd_init failed. The directory as work-directory already exists."
+        echo "Please use a different work-directory name."
+        exit -1
+    fi
+    mkdir "$2" ; cd "$2"
+    cp $LMD_SELF_PATH/data/lmd.conf ./
+    touch index.md
+    mkdir source output figures appearance
+    cp -r $LMD_SELF_PATH/data/appearance ./
+    echo -e "---\ntitle: $1\n...\n----" > index.md
+    # for github pages
+    touch .nojekyll
+}
+# 初始化带有 metadata 的文章
+function lmd_init_post {
+    lmd_env
+    echo "---" > "$2"
+    echo "title: $1" >> "$2"
+    echo "homeback: ${PATH_TO_ROOT}/index.html" >> "$2"
+    echo "lang: $LANGUAGE" >> "$2"
+    echo "date: $DATE" >> "$2"
+    echo "footer: $FOOTER" >> "$2"
+    echo -e "...\n" >> "$2"
+}
+# 创建分类或文章
+function lmd_new {
+    lmd_env
+    case $1 in
+        category)
+            if [ -z "$2" ]
+            then
+                echo -e "Error. Right way: lmd new category category-directory"
+                exit -1
+            fi
+            if [ -d "$2" ]
+            then
+                echo "lmd_new failed. The category already exists."
+                exit -1
+            fi
+            for i in source figures output
+            do
+                cd "$PATH_TO_ROOT"
+                cd "$i/$CATEGORY" && mkdir -p "$2"
+            done
+            ;;
+        post)
+            if [ -z "$2" ] || [ -z "$3" ]
+            then
+                echo -e "Right way: lmd new post \"Post name\" post.md"
+                exit -1
+            fi
+            if [ -e "$3" ]
+            then
+                echo "lmd_new failed. The post already exists."
+                exit -1
+            fi
+            lmd_init_post "$2" "$3"
+            cd $PATH_TO_ROOT
+            mkdir -p "figures/$CATEGORY/${3%.*}"
+            cd $CURRENT_PATH
+            $EDITOR "$3" 2>/dev/null &
+            ;;
+        *)
+            echo "lmd_new: I can not understand you!"
+            exit -1
+            ;;
+    esac
+}
+# 重命名分类或文章
+function lmd_rename {
+    lmd_env
+    case $1 in
+        category)
+            for i in source figures output
+            do
+                cd "$PATH_TO_ROOT/$i/$CATEGORY" && mv "$2" "$3"
+            done
+            ;;
+        post)
+            cd $PATH_TO_ROOT
+            cd "figures/$CATEGORY" && mv "${2%.*}" "${3%.*}"
+            cd $PATH_TO_ROOT
+            cd "output/$CATEGORY"
+            if [ -e "${2%.*}.html" ]
+            then
+                mv "${2%.*}.html" "${3%.*}.html"
+            fi
+            cd "$CURRENT_PATH"
+            mv "$2" "$3"
+            ;;
+        *)
+            echo "lmd_rename: I can not understand you!"
+            exit -1
+            ;;
+    esac
+}
+# 删除分类或文章
+function lmd_delete {
+    lmd_env
+    case $1 in
+        category)
+            for i in "${@:2}"
+            do
+                for j in source figures output
+                do
+                    cd "$PATH_TO_ROOT/$j/$CATEGORY"
+                    rm -rf "$i"
+                    cd $CURRENT_PATH
+                done
+            done
+            ;;
+        post)
+            for i in "${@:2}"
+            do
+                rm -f "$i"
+                cd "$PATH_TO_ROOT"
+                rm -rf "figures/$CATEGORY/${i%.*}"
+                rm -f "output/$CATEGORY/${i%.*}.html"
+                cd $CURRENT_PATH
+            done
+            ;;
+        *)
+            echo "lmd_delete: I do not understand you!"
+            exit -1
+            ;;
+    esac
+}
+# 将 markdown 源文件转换为 HTML
+function lmd_convert {
+    lmd_env
+    local PANDOC_DATA="appearance/pandoc/data"
+    if [ "$PATH_TO_ROOT" = "" ]  # 生成首页
+    then
+        pandoc $1 -s --data-dir=$PANDOC_DATA --template=homepage.template \
+               -c "appearance/lmd.css" -o ${1%.md}.html
+    else
+        for i in "$@"
+        do
+            cd "$PATH_TO_ROOT"
+            pandoc "source/$CATEGORY/$i" -s --toc \
+                   -c "$PATH_TO_ROOT/appearance/lmd.css" \
+                   --data-dir=$PANDOC_DATA \
+                   --template=post.template \
+                   --mathjax=https://cdn.bootcss.com/mathjax/3.2.2/es5/tex-mml-chtml.js \
+                   --highlight-style pygments \
+                   -o "output/$CATEGORY/${i%.*}.html"
+            cd "$CURRENT_PATH"
+        done
+    fi
+}
+#  将 markdown 源文件转换为 HTML 并查看转换结果
+function lmd_view {
+    lmd_env
+    if [ -z "$PATH_TO_ROOT" ]
+    then
+        lmd_convert $1
+        $BROWSER "${1%.md}.html" 2>/dev/null &
+    else
+        lmd_convert "$@"
+        cd "$PATH_TO_ROOT"
+        $BROWSER "output/$CATEGORY/${1%.md}.html" 2>/dev/null &
+    fi
+}
+# 界面
+case $1 in 
+    init) lmd_init "${@:2}" ;;
+    new) lmd_new "${@:2}" ;;
+    rename) lmd_rename "${@:2}" ;;
+    delete) lmd_delete "${@:2}" ;;
+    convert) lmd_convert "${@:2}" ;;
+    view) lmd_view "${@:2}" ;;
+    root) echo $(lmd_path_to_start) ;;
+    tree)
+        cd "$(lmd_path_to_start)"
+        WORKS="$(basename $(pwd))"
+        cd ../
+        tree ${@:2} "$WORKS"
+        ;;
+    *) 
+        echo "lmd: I do not understand you!"
+        #exit -1
+        ;;
+esac
