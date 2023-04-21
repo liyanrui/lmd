@@ -200,6 +200,30 @@ function lmd_view {
         $BROWSER "output/$CATEGORY/${1%.md}.html" 2>/dev/null &
     fi
 }
+# 将文档添加至文集目录。 $1 为文档，$2 为目录文件
+function lmd_appear {
+    lmd_env
+    local HTML="${1%.md}.html"
+    local TITLE=$(awk -f "$LMD_SELF_PATH/helper/title.awk" "$1")
+    local ABSTRACT=$(awk -f "$LMD_SELF_PATH/helper/abstract.awk" "$1")
+    awk -v title="$TITLE" \
+        -v abstract="$ABSTRACT" \
+        -v category="$CATEGORY" \
+        -v html_file=$HTML \
+        -f "$LMD_SELF_PATH/helper/appear.awk" \
+        "$2" > _lmd.tmp_
+    mv _lmd.tmp_ "$2"
+    lmd_convert "$2"
+}
+# 从文集目录隐藏某篇文档，$1 为文档，$2 为目录文件
+function lmd_hide {
+    local TITLE=$(awk -f "$LMD_SELF_PATH/helper/title.awk" "$1")
+    awk -v title="$TITLE" \
+        -f "$LMD_SELF_PATH/helper/hide.awk" \
+        "$2" > _lmd_._tmp_
+    mv _lmd_._tmp_ "$2"
+    lmd_convert "$2"
+}
 # 界面
 case $1 in 
     init) lmd_init "${@:2}" ;;
@@ -208,6 +232,8 @@ case $1 in
     delete) lmd_delete "${@:2}" ;;
     convert) lmd_convert "${@:2}" ;;
     view) lmd_view "${@:2}" ;;
+    appear) lmd_appear "${@:2}" ;;
+    hide) lmd_hide "${@:2}" ;;
     root) echo $(lmd_path_to_start) ;;
     tree)
         cd "$(lmd_path_to_start)"
