@@ -41,12 +41,13 @@ function lmd_init {
         echo "Please use a different work-directory name."
         exit -1
     fi
+    source "$LMD_SELF_PATH/lmd.conf"
     mkdir "$2" ; cd "$2"
-    cp $LMD_SELF_PATH/data/lmd.conf ./
-    touch index.md
+    cp $LMD_SELF_PATH/lmd.conf ./
+    touch "index$MARKDOWN_EXT"
     mkdir source output figures appearance
     cp -r $LMD_SELF_PATH/data/appearance ./
-    echo -e "---\ntitle: $1\n...\n----" > index.md
+    echo -e "---\ntitle: $1\n...\n----" > "index$MARKDOWN_EXT"
     # for github pages
     touch .nojekyll
 }
@@ -58,6 +59,7 @@ function lmd_init_post {
     echo "homeback: ${PATH_TO_ROOT}/index.html" >> "$2"
     echo "lang: $LANGUAGE" >> "$2"
     echo "date: $DATE" >> "$2"
+    echo "abstract: " >> "$2"
     echo "footer: $FOOTER" >> "$2"
     echo -e "...\n" >> "$2"
 }
@@ -85,7 +87,7 @@ function lmd_new {
         post)
             if [ -z "$2" ] || [ -z "$3" ]
             then
-                echo -e "Right way: lmd new post \"Post name\" post.md"
+                echo -e "Right way: lmd new post \"Post name\" post$MARKDOWN_EXT"
                 exit -1
             fi
             if [ -e "$3" ]
@@ -95,7 +97,7 @@ function lmd_new {
             fi
             lmd_init_post "$2" "$3"
             cd $PATH_TO_ROOT
-            mkdir -p "figures/$CATEGORY/${3%.*}"
+            mkdir -p "figures/$CATEGORY/${3%$MARKDOWN_EXT}"
             cd $CURRENT_PATH
             $EDITOR "$3" 2>/dev/null &
             ;;
@@ -117,12 +119,12 @@ function lmd_rename {
             ;;
         post)
             cd $PATH_TO_ROOT
-            cd "figures/$CATEGORY" && mv "${2%.*}" "${3%.*}"
+            cd "figures/$CATEGORY" && mv "${2%$MARKDOWN_EXT}" "${3%$MARKDOWN_EXT}"
             cd $PATH_TO_ROOT
             cd "output/$CATEGORY"
-            if [ -e "${2%.*}.html" ]
+            if [ -e "${2%$MARKDOWN_EXT}.html" ]
             then
-                mv "${2%.*}.html" "${3%.*}.html"
+                mv "${2%$MARKDOWN_EXT}.html" "${3%$MARKDOWN_EXT}.html"
             fi
             cd "$CURRENT_PATH"
             mv "$2" "$3"
@@ -153,8 +155,8 @@ function lmd_delete {
             do
                 rm -f "$i"
                 cd "$PATH_TO_ROOT"
-                rm -rf "figures/$CATEGORY/${i%.*}"
-                rm -f "output/$CATEGORY/${i%.*}.html"
+                rm -rf "figures/$CATEGORY/${i%$MARKDOWN_EXT}"
+                rm -f "output/$CATEGORY/${i%$MARKDOWN_EXT}.html"
                 cd $CURRENT_PATH
             done
             ;;
@@ -171,7 +173,7 @@ function lmd_convert {
     if [ "$PATH_TO_ROOT" = "" ]  # 生成首页
     then
         pandoc $1 -s --data-dir=$PANDOC_DATA --template=homepage.template \
-               -c "appearance/lmd.css" -o ${1%.md}.html
+               -c "appearance/lmd.css" -o ${1%$MARKDOWN_EXT}.html
     else
         for i in "$@"
         do
@@ -182,7 +184,7 @@ function lmd_convert {
                    --template=post.template \
                    --mathjax=https://cdn.bootcss.com/mathjax/3.2.2/es5/tex-mml-chtml.js \
                    --highlight-style pygments \
-                   -o "output/$CATEGORY/${i%.*}.html"
+                   -o "output/$CATEGORY/${i%$MARKDOWN_EXT}.html"
             cd "$CURRENT_PATH"
         done
     fi
@@ -193,17 +195,17 @@ function lmd_view {
     if [ -z "$PATH_TO_ROOT" ]
     then
         lmd_convert $1
-        $BROWSER "${1%.md}.html" 2>/dev/null &
+        $BROWSER "${1%$MARKDOWN_EXT}.html" 2>/dev/null &
     else
         lmd_convert "$@"
         cd "$PATH_TO_ROOT"
-        $BROWSER "output/$CATEGORY/${1%.md}.html" 2>/dev/null &
+        $BROWSER "output/$CATEGORY/${1%$MARKDOWN_EXT}.html" 2>/dev/null &
     fi
 }
 # 将文档添加至文集目录。 $1 为文档，$2 为目录文件
 function lmd_appear {
     lmd_env
-    local HTML="${1%.md}.html"
+    local HTML="${1%$MARKDOWN_EXT}.html"
     local TITLE=$(awk -f "$LMD_SELF_PATH/helper/title.awk" "$1")
     local ABSTRACT=$(awk -f "$LMD_SELF_PATH/helper/abstract.awk" "$1")
     awk -v title="$TITLE" \
