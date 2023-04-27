@@ -68,12 +68,12 @@ function lmd_new {
     lmd_env
     case $1 in
         category)
-            if [ -z "$2" ]
+            if [ -z "$2" ] || [ -z "$3" ]
             then
-                echo -e "Error. Right way: lmd new category category-directory"
+                echo -e "Right way: lmd new category \"Category name\" category-directory"
                 exit -1
             fi
-            if [ -d "$2" ]
+            if [ -d "$3" ]
             then
                 echo "lmd_new failed. The category already exists."
                 exit -1
@@ -81,8 +81,10 @@ function lmd_new {
             for i in source figures output
             do
                 cd "$PATH_TO_ROOT"
-                cd "$i/$CATEGORY" && mkdir -p "$2"
+                cd "$i" && mkdir -p "$3"
             done
+            cd "$CURRENT_PATH/$3"
+            lmd_init_post "$2" "${3}$MARKDOWN_EXT"
             ;;
         post)
             if [ -z "$2" ] || [ -z "$3" ]
@@ -215,7 +217,8 @@ function lmd_appear {
         -f "$LMD_SELF_PATH/helper/appear.awk" \
         "$2" > _lmd.tmp_
     mv _lmd.tmp_ "$2"
-    lmd_convert "$2"
+    cd $(dirname "$2")
+    lmd_convert $(basename "$2")
 }
 # 从文集目录隐藏某篇文档，$1 为文档，$2 为目录文件
 function lmd_hide {
