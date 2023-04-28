@@ -44,10 +44,16 @@ function lmd_init {
     source "$LMD_SELF_PATH/lmd.conf"
     mkdir "$2" ; cd "$2"
     cp $LMD_SELF_PATH/lmd.conf ./
-    touch "index$MARKDOWN_EXT"
+    local index="index$MARKDOWN_EXT"
+    touch "$index"
     mkdir source output figures appearance
     cp -r $LMD_SELF_PATH/data/appearance ./
-    echo -e "---\ntitle: $1\n...\n----" > "index$MARKDOWN_EXT"
+    echo "---" > "$index"
+    echo "title: $1" >> "$index"
+    echo "lang: $LANGUAGE" >> "$index"
+    echo "abstract: " >> "$index"
+    echo "footer: $FOOTER" >> "$index"
+    echo -e "...\n" >> "$index"
     # for github pages
     touch .nojekyll
 }
@@ -216,7 +222,7 @@ function lmd_appear {
         -v html_file=$HTML \
         -f "$LMD_SELF_PATH/helper/appear.awk" \
         "$2" > _lmd.tmp_
-    mv _lmd.tmp_ "$2"
+    #mv _lmd.tmp_ "$2"
     cd $(dirname "$2")
     lmd_convert $(basename "$2")
 }

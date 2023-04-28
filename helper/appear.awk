@@ -1,17 +1,30 @@
 BEGIN {
-    i = 0; in_metadata = 0; before_text = 0;
+    first_one = 1
+    in_metadata = 0
+    before_text = 0
+    text = 0
+    insert_it = 0
+    other = 0
+    post = "* [" title "]" "(output/" category "/" html_file ")"
+    if (abstract) {
+        post = post "：" abstract
+    }
 }
 {
-    if ($0 ~ /^--- *$/ && i == 0) {
+    if (first_one && $0 ~ /^--- *$/) {
         print $0
         in_metadata = 1
         next
     }
-    if ($0 ~ /^\.\.\. *$/ && i == 0) {
+    if (first_one && $0 ~ /^\.\.\. *$/) {
         print $0
         in_metadata = 0
         before_text = 1
-        i++
+        first_one = 0
+        next
+    }
+    if (in_metadata) {
+        print $0
         next
     }
     if (before_text) {
@@ -19,15 +32,25 @@ BEGIN {
             print $0
             next
         } else {
-            new_post = "* [" title "]" "(output/" category "/" html_file ")：" abstract
-            no_repeat[title]++
-            print "* [" title "]" "(output/" category "/" html_file ")：" abstract
             before_text = 0
+            insert_it = 1
         }
     }
-    match($0, /^\* *\[(.*)\](.*) *：/, s)
-    other_title = s[1]
-    if (!no_repeat[other_title]) {
-        print $0
+    if (insert_it) {
+        print post
+        other = 1
+    }
+    if (other) {
+        match($0, /^\* *\[(.*)\](.*) *：/, s)
+        other_title = s[1]
+        if (other_title == title) {
+        } else {
+            print $0
+        }
+    }
+}
+END {
+    if (!insert_it) {
+        print post
     }
 }
