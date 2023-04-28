@@ -221,8 +221,8 @@ function lmd_appear {
         -v category="$CATEGORY" \
         -v html_file=$HTML \
         -f "$LMD_SELF_PATH/helper/appear.awk" \
-        "$2" > _lmd.tmp_
-    #mv _lmd.tmp_ "$2"
+        "$2" > _lmd-2023.tmp_
+    mv _lmd-2023.tmp_ "$2"
     cd $(dirname "$2")
     lmd_convert $(basename "$2")
 }
