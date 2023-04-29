@@ -62,10 +62,10 @@ function lmd_init_post {
     lmd_env
     echo "---" > "$2"
     echo "title: $1" >> "$2"
-    echo "homeback: ${PATH_TO_ROOT}/index.html" >> "$2"
     echo "lang: $LANGUAGE" >> "$2"
     echo "date: $DATE" >> "$2"
     echo "abstract: " >> "$2"
+    echo "category: " >> "$2"
     echo "footer: $FOOTER" >> "$2"
     echo -e "...\n" >> "$2"
 }
@@ -90,7 +90,7 @@ function lmd_new {
                 cd "$i" && mkdir -p "$3"
             done
             cd "$CURRENT_PATH/$3"
-            lmd_init_post "$2" "${3}$MARKDOWN_EXT"
+            lmd_init_post "$2" "index$MARKDOWN_EXT"
             ;;
         post)
             if [ -z "$2" ] || [ -z "$3" ]
@@ -216,9 +216,21 @@ function lmd_appear {
     local HTML="${1%$MARKDOWN_EXT}.html"
     local TITLE=$(awk -f "$LMD_SELF_PATH/helper/title.awk" "$1")
     local ABSTRACT=$(awk -f "$LMD_SELF_PATH/helper/abstract.awk" "$1")
+    # 获取 $2 相对于 $1 的路径
+    cd "$(dirname $2)"
+    local TOC_PATH="$(pwd)"
+    cd "$CURRENT_PATH"
+    local POST_PATH="$(pwd)"
+    local RELATIVE_PATH=$(realpath "$POST_PATH" --relative-to="$TOC_PATH")
+    RELATIVE_PATH=$(echo "$RELATIVE_PATH" | sed -e 's/source/output/g' )
+    local CATEGORY_PATH=$(realpath "$TOC_PATH" --relative-to="$POST_PATH")
+    awk -v category="$CATEGORY_PATH/index.html" \
+        -f "$LMD_SELF_PATH/helper/category.awk" \
+        "$1" > _lmd-category-2023.tmp_
+    mv _lmd-category-2023.tmp_  "$1"
     awk -v title="$TITLE" \
         -v abstract="$ABSTRACT" \
-        -v category="$CATEGORY" \
+        -v relative_path="$RELATIVE_PATH" \
         -v html_file=$HTML \
         -f "$LMD_SELF_PATH/helper/appear.awk" \
         "$2" > _lmd-2023.tmp_

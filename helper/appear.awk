@@ -2,10 +2,8 @@ BEGIN {
     first_one = 1
     in_metadata = 0
     before_text = 0
-    text = 0
-    insert_it = 0
-    other = 0
-    post = "* [" title "]" "(output/" category "/" html_file ")"
+    finished = 0
+    post = "* [" title "]" "(" relative_path "/" html_file ")"
     if (abstract) {
         post = post "：" abstract
     }
@@ -23,7 +21,7 @@ BEGIN {
         first_one = 0
         next
     }
-    if (in_metadata) {
+    if (first_one && in_metadata) {
         print $0
         next
     }
@@ -32,25 +30,21 @@ BEGIN {
             print $0
             next
         } else {
+            print post
             before_text = 0
-            insert_it = 1
+            finished = 1
         }
     }
-    if (insert_it) {
-        print post
-        other = 1
-    }
-    if (other) {
-        match($0, /^\* *\[(.*)\](.*) *：/, s)
+    if (finished) {
+        match($0, /^\* *\[(.*)\]\(.*\)/, s)
         other_title = s[1]
-        if (other_title == title) {
-        } else {
+        if (other_title != title) {
             print $0
         }
     }
 }
 END {
-    if (!insert_it) {
+    if (!finished) {
         print post
     }
 }
