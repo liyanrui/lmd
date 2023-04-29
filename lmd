@@ -226,8 +226,9 @@ function lmd_appear {
     local CATEGORY_PATH=$(realpath "$TOC_PATH" --relative-to="$POST_PATH")
     awk -v category="$CATEGORY_PATH/index.html" \
         -f "$LMD_SELF_PATH/helper/category.awk" \
-        "$1" > _lmd-category-2023.tmp_
-    mv _lmd-category-2023.tmp_  "$1"
+        "$1" > ._lmd-category-2023.tmp_
+    mv ._lmd-category-2023.tmp_  "$1"
+    lmd_convert "$1"
     awk -v title="$TITLE" \
         -v abstract="$ABSTRACT" \
         -v relative_path="$RELATIVE_PATH" \

@@ -105,9 +105,10 @@ img {
     margin: 0 0;
     max-width: 100%;
 }
-figure figcaption {
+figcaption {
     font-size: 0.9em;
     text-align: center;
+    display: none;
 }
 
 pre {
