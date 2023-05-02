@@ -210,7 +210,7 @@ function lmd_view {
         $BROWSER "output/$CATEGORY/${1%$MARKDOWN_EXT}.html" 2>/dev/null &
     fi
 }
-# 将文档添加至文集目录。 $1 为文档，$2 为目录文件
+# 将文档添加至文集目录。 $1 为文档，$2 为目录文件, $3 为 awk 脚本
 function lmd_appear {
     lmd_env
     local HTML="${1%$MARKDOWN_EXT}.html"
@@ -222,7 +222,7 @@ function lmd_appear {
     cd "$CURRENT_PATH"
     local POST_PATH="$(pwd)"
     local RELATIVE_PATH=$(realpath "$POST_PATH" --relative-to="$TOC_PATH")
-    RELATIVE_PATH=$(echo "$RELATIVE_PATH" | sed -e 's/source/output/g' )
+    RELATIVE_PATH=$(echo "$RELATIVE_PATH" | awk '{gsub("source", "output"); print $0}')
     local CATEGORY_PATH=$(realpath "$TOC_PATH" --relative-to="$POST_PATH")
     awk -v category="$CATEGORY_PATH/index.html" \
         -f "$LMD_SELF_PATH/helper/category.awk" \
@@ -233,7 +233,7 @@ function lmd_appear {
         -v abstract="$ABSTRACT" \
         -v relative_path="$RELATIVE_PATH" \
         -v html_file=$HTML \
-        -f "$LMD_SELF_PATH/helper/appear.awk" \
+        -f "$LMD_SELF_PATH/helper/$3" \
         "$2" > _lmd-2023.tmp_
     mv _lmd-2023.tmp_ "$2"
     cd $(dirname "$2")
@@ -256,7 +256,9 @@ case $1 in
     delete) lmd_delete "${@:2}" ;;
     convert) lmd_convert "${@:2}" ;;
     view) lmd_view "${@:2}" ;;
-    appear) lmd_appear "${@:2}" ;;
+    appear) lmd_appear "${@:2}" prepend.awk;;
+    prepend) lmd_appear "${@:2}" prepend.awk;;
+    append) lmd_appear "${@:2}" append.awk;;
     hide) lmd_hide "${@:2}" ;;
     root) echo $(lmd_path_to_start) ;;
     tree)
