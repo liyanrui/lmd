@@ -1,1 +1,1 @@
-用法见 <https://liyanrui.github.io/output/2023/lmd.html>
+用法见 <https://liyanrui.github.io/output/bash/lmd.html>
