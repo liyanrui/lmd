@@ -36,10 +36,11 @@ BEGIN {
         }
     }
     if (finished) {
-        match($0, /^\* *\[([^\]]*)\]\(.*\)/, s)
-        other_title = s[1]
-        if (other_title != title) {
-            print $0
+        if (match($0, /^\* *\[[^\]]*\]\(.*\)/)) {
+            s = $0
+            sub(/\* *\[ */, "", s)
+            sub(/ *\]\(.*\).*$/, "", s)
+            if (s != title) print $0
         }
     }
 }

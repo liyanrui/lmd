@@ -37,12 +37,13 @@ BEGIN {
     }
     if (text) {
         if ($0 !~ /^ *$/) {
-            match($0, /^\* *\[([^\]]*)\]\(.*\)/, s)
-            other_title = s[1]
-            if (other_title != title) {
-                print $0
+            if (match($0, /^\* *\[[^\]]*\]\(.*\)/)) {
+                s = $0
+                sub(/^\* *\[ */, "", s)     # 去除首部空白
+                sub(/ *\]\(.*\).*$/, "", s) # 去除尾部空白
+                if (s != title) print $0
+                next
             }
-            next
         }
     }
 }

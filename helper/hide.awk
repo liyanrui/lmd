@@ -1,7 +1,9 @@
 {
-    match($0, /^\* *\[([^\]]*)\](.*) *：/, s)
-    other_title = s[1]
-    if (title != other_title) {
+    match($0, /^\* *\[[^\]]*\](.*) *：/)
+    s = $0
+    sub(/^\* *\[ */, "", s)
+    sub(/ *\].*$/, "", s)
+    if (title != s) {
             print $0
     }
 }
