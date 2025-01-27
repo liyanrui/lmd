@@ -1,265 +1,119 @@
-#!/usr/bin/env bash
-# 确定脚本所在路径
 LMD_SELF_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# 获得文集子目录到文集根目录的相对路径
-function lmd_path_to_start {
+function path_to_root {
     local relative_path="$1"
     if [ "$(pwd)" = "/" ]
     then
-       echo "Error: I can not find right path!"
-       exit -1
+        echo "Error: I can not find right path!"
+        exit -1
     elif [ -e lmd.conf ]
     then
         echo "${relative_path%/}"
     else
         relative_path="../$relative_path"
         cd ../
-        lmd_path_to_start "$relative_path"
+        path_to_root "$relative_path"
     fi
 }
-function lmd_env {
-    CURRENT_PATH="$(pwd)"
-    PATH_TO_ROOT=$(lmd_path_to_start)
-    CATEGORY=$(realpath "$CURRENT_PATH" --relative-to="$PATH_TO_ROOT/source")
-    if [ -z "$PATH_TO_ROOT" ]
-    then
-        source ./lmd.conf
-    else
-        source $PATH_TO_ROOT/lmd.conf
+function lmd_path_to_root {
+    local current_path="$(pwd)"
+    local relative_path="$(path_to_root "")"
+    if [ "$relative_path" = "" ]; then
+        relative_path="."
     fi
+    echo "$relative_path"
+    cd "$current_path"
 }
-# $1 为文集名，$2 为文集根目录
+function lmd_new_post {
+    mkdir "$3" && cd "$3"
+    echo "---" > index.md
+    echo "title: $1" >> index.md
+    echo "subtitle: $2" >> index.md
+    echo -e "...\n" >> index.md
+    mkdir figures
+}
 function lmd_init {
-    if [ -z "$1" ] || [ -z "$2" ]
-    then
-        echo "The right way: lmd init \"Work name\" work-directory"
-        exit -1
-    fi
-    if [ -d "$2" ]
-    then
-        echo "lmd_init failed. The directory as work-directory already exists."
-        echo "Please use a different work-directory name."
-        exit -1
-    fi
-    source "$LMD_SELF_PATH/lmd.conf"
-    mkdir "$2" ; cd "$2"
+    lmd_new_post "$1" "$2" "$3"
+    cp -r "$LMD_SELF_PATH/data/appearance" ./
     cp $LMD_SELF_PATH/lmd.conf ./
-    local index="index$MARKDOWN_EXT"
-    touch "$index"
-    mkdir source output figures appearance
-    cp -r $LMD_SELF_PATH/data/appearance ./
-    echo "---" > "$index"
-    echo "title: $1" >> "$index"
-    echo "lang: $LANGUAGE" >> "$index"
-    echo "abstract: " >> "$index"
-    echo "footer: $FOOTER" >> "$index"
-    echo -e "...\n" >> "$index"
-    # for github pages
-    touch .nojekyll
 }
-# 初始化带有 metadata 的文章
-function lmd_init_post {
-    lmd_env
-    echo "---" > "$2"
-    echo "title: $1" >> "$2"
-    echo "lang: $LANGUAGE" >> "$2"
-    echo "date: $DATE" >> "$2"
-    echo "abstract: " >> "$2"
-    echo "category: " >> "$2"
-    echo "footer: $FOOTER" >> "$2"
-    echo -e "...\n" >> "$2"
-}
-# 创建分类或文章
-function lmd_new {
-    lmd_env
-    case $1 in
-        category)
-            if [ -z "$2" ] || [ -z "$3" ]
-            then
-                echo -e "Right way: lmd new category \"Category name\" category-directory"
-                exit -1
-            fi
-            if [ -d "$3" ]
-            then
-                echo "lmd_new failed. The category already exists."
-                exit -1
-            fi
-            for i in source figures output
-            do
-                cd "$PATH_TO_ROOT"
-                cd "$i" && mkdir -p "$3"
-            done
-            cd "$CURRENT_PATH/$3"
-            lmd_init_post "$2" "index$MARKDOWN_EXT"
-            ;;
-        post)
-            if [ -z "$2" ] || [ -z "$3" ]
-            then
-                echo -e "Right way: lmd new post \"Post name\" post$MARKDOWN_EXT"
-                exit -1
-            fi
-            if [ -e "$3" ]
-            then
-                echo "lmd_new failed. The post already exists."
-                exit -1
-            fi
-            lmd_init_post "$2" "$3"
-            cd $PATH_TO_ROOT
-            mkdir -p "figures/$CATEGORY/${3%$MARKDOWN_EXT}"
-            cd $CURRENT_PATH
-            $EDITOR "$3" 2>/dev/null &
-            ;;
-        *)
-            echo "lmd_new: I can not understand you!"
-            exit -1
-            ;;
-    esac
-}
-# 重命名分类或文章
-function lmd_rename {
-    lmd_env
-    case $1 in
-        category)
-            for i in source figures output
-            do
-                cd "$PATH_TO_ROOT/$i/$CATEGORY" && mv "$2" "$3"
-            done
-            ;;
-        post)
-            cd $PATH_TO_ROOT
-            cd "figures/$CATEGORY" && mv "${2%$MARKDOWN_EXT}" "${3%$MARKDOWN_EXT}"
-            cd $PATH_TO_ROOT
-            cd "output/$CATEGORY"
-            if [ -e "${2%$MARKDOWN_EXT}.html" ]
-            then
-                mv "${2%$MARKDOWN_EXT}.html" "${3%$MARKDOWN_EXT}.html"
-            fi
-            cd "$CURRENT_PATH"
-            mv "$2" "$3"
-            ;;
-        *)
-            echo "lmd_rename: I can not understand you!"
-            exit -1
-            ;;
-    esac
-}
-# 删除分类或文章
-function lmd_delete {
-    lmd_env
-    case $1 in
-        category)
-            for i in "${@:2}"
-            do
-                for j in source figures output
-                do
-                    cd "$PATH_TO_ROOT/$j/$CATEGORY"
-                    rm -rf "$i"
-                    cd $CURRENT_PATH
-                done
-            done
-            ;;
-        post)
-            for i in "${@:2}"
-            do
-                rm -f "$i"
-                cd "$PATH_TO_ROOT"
-                rm -rf "figures/$CATEGORY/${i%$MARKDOWN_EXT}"
-                rm -f "output/$CATEGORY/${i%$MARKDOWN_EXT}.html"
-                cd $CURRENT_PATH
-            done
-            ;;
-        *)
-            echo "lmd_delete: I do not understand you!"
-            exit -1
-            ;;
-    esac
-}
-# 将 markdown 源文件转换为 HTML
-function lmd_convert {
-    lmd_env
-    local PANDOC_DATA="appearance/pandoc/data"
-    if [ "$PATH_TO_ROOT" = "" ]  # 生成首页
-    then
-        pandoc $1 -s --data-dir=$PANDOC_DATA --template=homepage.template \
-               -c "appearance/lmd.css" -o ${1%$MARKDOWN_EXT}.html
+function lmd_append_meta_data {
+    source "$(lmd_path_to_root)/lmd.conf"
+    if [ -e lmd.conf ]; then
+        awk -v lang="$LMD_LANGUAGE" \
+            -v footer="$LMD_FOOTER" \
+            -f "$LMD_SELF_PATH/helper/append-meta-data.awk" \
+            "$1" > "$2"
     else
-        for i in "$@"
-        do
-            cd "$PATH_TO_ROOT"
-            pandoc "source/$CATEGORY/$i" -s --toc \
-                   -c "$PATH_TO_ROOT/appearance/lmd.css" \
-                   --data-dir=$PANDOC_DATA \
-                   --template=post.template \
-                   --mathjax=https://cdn.bootcss.com/mathjax/3.2.2/es5/tex-mml-chtml.js \
-                   --highlight-style pygments \
-                   -o "output/$CATEGORY/${i%$MARKDOWN_EXT}.html"
-            cd "$CURRENT_PATH"
-        done
+        awk -v category="../index.html" \
+            -v lang="$LMD_LANGUAGE" \
+            -v footer="$LMD_FOOTER" \
+            -f "$LMD_SELF_PATH/helper/append-meta-data.awk" \
+            "$1" > "$2"
     fi
 }
-#  将 markdown 源文件转换为 HTML 并查看转换结果
-function lmd_view {
-    lmd_env
-    if [ -z "$PATH_TO_ROOT" ]
-    then
-        lmd_convert $1
-        $BROWSER "${1%$MARKDOWN_EXT}.html" 2>/dev/null &
-    else
-        lmd_convert "$@"
-        cd "$PATH_TO_ROOT"
-        $BROWSER "output/$CATEGORY/${1%$MARKDOWN_EXT}.html" 2>/dev/null &
+function lmd_delete_meta_data {
+    awk -f "$LMD_SELF_PATH/helper/delete-meta-data.awk" "$1" > "${1#.tmp_}"
+}
+function lmd_add_post {
+    if [ -e ../index.md ]; then
+        local title=$(awk -f "$LMD_SELF_PATH/helper/get-title.awk" index.md)
+        local exist=$(awk -v title="$title" \
+                          -f "$LMD_SELF_PATH/helper/find-post.awk" ../index.md)
+        if [ "$exist" != "true" ]; then
+            awk -v title="$title" \
+                -v post_path="$(basename $(pwd))/index.html" \
+                -f "$LMD_SELF_PATH/helper/add-post.awk" \
+                "$1" > "$2"
+        fi
     fi
 }
-# 将文档添加至文集目录。 $1 为文档，$2 为目录文件, $3 为 awk 脚本
-function lmd_appear {
-    lmd_env
-    local HTML="${1%$MARKDOWN_EXT}.html"
-    local TITLE=$(awk -f "$LMD_SELF_PATH/helper/title.awk" "$1")
-    local ABSTRACT=$(awk -f "$LMD_SELF_PATH/helper/abstract.awk" "$1")
-    # 获取 $2 相对于 $1 的路径
-    cd "$(dirname $2)"
-    local TOC_PATH="$(pwd)"
-    cd "$CURRENT_PATH"
-    local POST_PATH="$(pwd)"
-    local RELATIVE_PATH=$(realpath "$POST_PATH" --relative-to="$TOC_PATH")
-    RELATIVE_PATH=$(echo "$RELATIVE_PATH" | awk '{gsub("source", "output"); print $0}')
-    local CATEGORY_PATH=$(realpath "$TOC_PATH" --relative-to="$POST_PATH")
-    awk -v category="$CATEGORY_PATH/index.html" \
-        -f "$LMD_SELF_PATH/helper/category.awk" \
-        "$1" > ._lmd-category-2023.tmp_
-    mv ._lmd-category-2023.tmp_  "$1"
-    lmd_convert "$1"
-    awk -v title="$TITLE" \
-        -v abstract="$ABSTRACT" \
-        -v relative_path="$RELATIVE_PATH" \
-        -v html_file=$HTML \
-        -f "$LMD_SELF_PATH/helper/$3" \
-        "$2" > _lmd-2023.tmp_
-    mv _lmd-2023.tmp_ "$2"
-    cd $(dirname "$2")
-    lmd_convert $(basename "$2")
+function build_post {
+    lmd_append_meta_data  "$1" "$2"
+    local appearance_path="$(lmd_path_to_root)/appearance"
+    if [ "$appearance_path" = "./appearance" ]; then
+        pandoc "$2" --standalone \
+            --css "$appearance_path/lmd.css" \
+            --data-dir="$appearance_path/pandoc/data" \
+            --template=homepage.template \
+            -o "index.html"
+    else
+        pandoc "$2" --standalone --table-of-contents \
+            --css "$appearance_path/lmd.css" \
+            --data-dir="$appearance_path/pandoc/data" \
+            --template=post.template \
+            --mathjax=https://cdnbootcss.com/mathjax/3.2.2/es5/tex-mml-chtml.js \
+            --highlight-style=pygments \
+            -o "index.html"
+    fi
+    awk -f "$LMD_SELF_PATH/helper/delete-meta-data.awk" "$2" > index.md
 }
-# 从文集目录隐藏某篇文档，$1 为文档，$2 为目录文件
-function lmd_hide {
-    local TITLE=$(awk -f "$LMD_SELF_PATH/helper/title.awk" "$1")
-    awk -v title="$TITLE" \
-        -f "$LMD_SELF_PATH/helper/hide.awk" \
-        "$2" > _lmd_._tmp_
-    mv _lmd_._tmp_ "$2"
-    lmd_convert "$2"
+function lmd_build_post {
+    build_post index.md .tmp_index.md
+    rm .tmp_index.md
 }
-# 界面
+function lmd_build_upper_post {
+    lmd_add_post ../index.md ../.tmp_0_index.md
+    cd ..
+    if [ -e .tmp_0_index.md ]; then
+        build_post .tmp_0_index.md .tmp_index.md
+        rm .tmp_0_index.md .tmp_index.md
+    fi
+}
+function lmd_delete_post {
+    local post=${1%/}
+    local title=$(awk -f "$LMD_SELF_PATH/helper/get-title.awk" "$post/index.md")
+    awk -v title="$title" \
+        -f "$LMD_SELF_PATH/helper/delete-item.awk" \
+        index.md > .tmp_index.md
+    mv .tmp_index.md index.md
+    lmd_build_post
+    rm -rf "$post"
+}
 case $1 in 
     init) lmd_init "${@:2}" ;;
-    new) lmd_new "${@:2}" ;;
-    rename) lmd_rename "${@:2}" ;;
-    delete) lmd_delete "${@:2}" ;;
-    convert) lmd_convert "${@:2}" ;;
-    view) lmd_view "${@:2}" ;;
-    appear) lmd_appear "${@:2}" prepend.awk;;
-    prepend) lmd_appear "${@:2}" prepend.awk;;
-    append) lmd_appear "${@:2}" append.awk;;
-    hide) lmd_hide "${@:2}" ;;
+    new) lmd_new_post "${@:2}" ;;
+    delete) lmd_delete_post "${@:2}" ;;
+    build) lmd_build_post && lmd_build_upper_post ;;
     root) echo $(lmd_path_to_start) ;;
     tree)
         cd "$(lmd_path_to_start)"

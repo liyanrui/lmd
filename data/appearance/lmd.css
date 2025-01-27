@@ -6,12 +6,10 @@
     body {max-width: 80% !important;}
     div.category {right: .5em !important;}
 }
-
 html {
     font-size: 14px;
     line-height: 24px;
 }
-
 body {
     max-width: 50%;
     margin: 0 auto;
@@ -22,16 +20,13 @@ body {
     /* font-kerning: normal; */
     font-family: "Arial", "Noto Sans CJK SC", sans-serif;
 }
-
 header {
     text-align: center;
 }
-
 h1, h2, h3, h4, h5 {
     margin: .5em auto;
     line-height: 1.5em;
 }
-
 h1.home-title { font-size: 2.65em; margin: .5em auto;}
 h1.title { font-size: 2em; margin: .5em auto;}
 h1 { font-size: 1.6em;}
@@ -41,7 +36,7 @@ p.subtitle {
     font-size:1.2em;
     text-align: center;
 }
-
+span.index-date {margin-left: 1em; margin-right: 1em;}
 #TOC {
     padding: 0em .5em;
     border: 2pt solid darkgray;
@@ -63,17 +58,14 @@ div.category {
     padding: .5em .3em;
     background: #666666;
 }
-
 #TOC a {
     font-size: 0.9em;
     font-weight: normal;
 }
-
 hr {
     color: #eeeeee;
     size: 10;
 }
-
 div.category a {
     text-decoration: none;
 }
@@ -89,18 +81,14 @@ div.category a:visited {
     color: white;
     text-decoration: none;
 }
-
-
 p {
     margin: 1.3em 0;
     text-align: justify;
 }
-
 figure {
     margin: auto;
     text-align: center;
 }
-
 img {
     margin: 0 0;
     max-width: 100%;
@@ -110,7 +98,6 @@ figcaption {
     text-align: center;
     display: none;
 }
-
 pre {
     font-size: 0.9em;
     padding: 1em;
@@ -121,7 +108,6 @@ pre {
     border-radius: 0.25em;
     max-height: 400px;
 }
-
 code, code span {
     color: #e83e8c;
     font-family: Monaco, 'Lucida Console', monospace;
@@ -131,7 +117,6 @@ pre code {
     color: #000000;
     font-family: Monaco, 'Lucida Console', monospace;
 }
-
 a:link {
     color: #993333;
     font-weight: bold;
@@ -145,29 +130,23 @@ a:visited {
     color: #0066CC;
     text-decoration: none;
 }
-
 /* metadata */
 p.author, p.date { text-align: center; margin: 0 auto;}
-
 blockquote {
     margin: 0px !important;
     border-left: 4px solid #009A61;
 }
-
 blockquote p {
     font-size: 1em;
     margin: 0px !important;
     text-align: justify;
     padding:0.5em;
 }
-
 /* 列表 */
 #TOC ul,  #TOC ol {
     padding:0em 1em;
 }
 li {padding-bottom:0.25em}
-
 /* 文章里小节标题的序号与标题名称之间的间距, 针对我写的生成文章目录的 m4 宏 */
 span.section-sep { margin-left: 0.5em; margin-right: 0.5em; }
-
 div.footer {text-align:center;}
