@@ -1,5 +1,9 @@
 BEGIN {
-    item = "* [" title "](" post_path ")"
+    post_date = ""
+    if (date) {
+        post_date = "<span class=\"post-date\">" date "</span>"
+    }
+    item = "* [" title "](" post_path ")" post_date
     metadata_beginning = 1
     in_metadata = 0
     before_text = 0

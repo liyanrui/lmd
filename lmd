@@ -54,13 +54,22 @@ function lmd_append_meta_data {
 function lmd_delete_meta_data {
     awk -f "$LMD_SELF_PATH/helper/delete-meta-data.awk" "$1" > "${1#.tmp_}"
 }
+function lmd_add_timestamp {
+    local date="$(date +'%Y 年 %m 月 %d 日')"
+    awk -v date="$date" \
+        -f "$LMD_SELF_PATH/helper/add-timestamp.awk" \
+        index.md > .tmp_index.md
+    mv .tmp_index.md index.md
+}
 function lmd_add_post {
     if [ -e ../index.md ]; then
         local title=$(awk -f "$LMD_SELF_PATH/helper/get-title.awk" index.md)
+        local date=$(awk -f "$LMD_SELF_PATH/helper/get-date.awk" index.md)
         local exist=$(awk -v title="$title" \
                           -f "$LMD_SELF_PATH/helper/find-post.awk" ../index.md)
         if [ "$exist" != "true" ]; then
             awk -v title="$title" \
+                -v date="$date" \
                 -v post_path="$(basename $(pwd))/index.html" \
                 -f "$LMD_SELF_PATH/helper/add-post.awk" \
                 "$1" > "$2"
@@ -113,10 +122,15 @@ case $1 in
     init) lmd_init "${@:2}" ;;
     new) lmd_new_post "${@:2}" ;;
     delete) lmd_delete_post "${@:2}" ;;
+    add)
+        if [ "$2" = "timestamp" ]; then
+            lmd_add_timestamp
+        fi
+        ;;
     build) lmd_build_post && lmd_build_upper_post ;;
     root) echo $(lmd_path_to_start) ;;
     tree)
-        cd "$(lmd_path_to_start)"
+        cd "$(lmd_path_to_root)"
         WORKS="$(basename $(pwd))"
         cd ../
         tree ${@:2} "$WORKS"
