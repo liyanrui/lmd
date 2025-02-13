@@ -2,9 +2,11 @@ BEGIN {
     RS = "\n\\.\\.\\.[ \t]*\n+"
     post_date = ""
     if (date) {
+        sub(/.+年[ ]*/, "", date)
         post_date = "<span class=\"post-date\">" date "</span>"
     }
-    item = "* [" title "](" post_path ")" post_date
+    item = "* " post_date "[" title "](" post_path ")"
+    if (abstract) item = item "：" abstract
 }
 {
     if (NR == 2) {
