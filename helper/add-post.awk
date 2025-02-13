@@ -1,45 +1,21 @@
 BEGIN {
+    RS = "\n\\.\\.\\.[ \t]*\n+"
     post_date = ""
     if (date) {
         post_date = "<span class=\"post-date\">" date "</span>"
     }
     item = "* [" title "](" post_path ")" post_date
-    metadata_beginning = 1
-    in_metadata = 0
-    before_text = 0
-    finished = 0
 }
 {
-    # 跳过文档首部 metadata
-    if (metadata_beginning && $0 ~ /^--- *$/) {
+    if (NR == 2) {
+        print "...\n\n" item
         print $0
-        in_metadata = 1
-        metadata_beginning = 0
-        next
-    }
-    if (in_metadata && $0 ~ /^\.\.\. *$/) {
-        print $0
-        in_metadata = 0
-        before_text = 1
-        next
-    }
-    if (in_metadata) {
-        print $0
-        next
-    }
-    if (before_text) {
-        # 在正文区域遇到非空行，添加 post 链接
-        if ($0 ~ /^[ \t]*$/) {
-            print $0
-        } else {
-            print item
-            finished = 1
-            before_text = 0
-        }
-    }
-    if (finished) print $0
+        RS = "\n"
+    } else print $0
 }
 END {
-    # 以防页面内容为空
-    if (!finished) print item
+    # 页面内容为空
+    if (NR < 2) {
+        print "...\n\n" item
+    }
 }

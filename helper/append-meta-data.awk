@@ -1,21 +1,11 @@
-BEGIN {
-    beginning = 1
-    meta_data = 0
-}
+BEGIN { RS = "\n\\.\\.\\.\n+" }
 {
-    if (beginning && $0 ~ /^--- *$/) {
+    if (NR == 1) {
         print $0
-        meta_data = 1
-        next
-    }
-    if (meta_data && $0 ~ /^\.\.\. *$/) {
-        if (category) print "category: " category
-        if (lang) print "lang: " lang
-        if (footer) print "footer: " footer
-        print $0
-        beginning = 0
-        meta_data = 0
-        next
-    }
-    print $0
+        if (category) print "category:", category
+        if (lang) print "lang:", lang
+        if (footer) print "footer:", footer
+        print "...\n"
+        RS = "\n"
+    } else print $0
 }

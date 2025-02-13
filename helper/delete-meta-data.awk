@@ -1,23 +1,14 @@
-BEGIN {
-    beginning = 1
-    meta_data = 0
-}
+BEGIN { RS = "\n\\.\\.\\.\n+"; FS = "\n" }
 {
-    if (beginning && $0 ~ /^--- *$/) {
-        print $0
-        meta_data = 1
-        next
-    }
-    if (meta_data && $0 ~ /^\.\.\. *$/) {
-        print $0
-        beginning = 0
-        meta_data = 0
-        next
-    }
-    if (meta_data) {
-        if (match($0, /^category:/)) next
-        if (match($0, /^lang:/)) next
-        if (match($0, /^footer:/)) next
-        print $0
+    if (NR == 1) {
+        x = "---"
+        for (i = 2; i <= NF; i++) {
+            if (match($i, /^category:/)) ;
+            else if (match($i, /^lang:/)) ;
+            else if (match($i, /^footer:/)) ;
+            else x = x "\n" $i
+        }
+        print x "\n...\n"
+        RS = "\n"; FS = " "
     } else print $0
 }
